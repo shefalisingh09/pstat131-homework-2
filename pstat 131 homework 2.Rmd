@@ -1,0 +1,72 @@
+---
+title: "pstat 131 homework 2"
+author: "Shefali Singh"
+date: '2022-04-08'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(tidymodels)
+library(ggplot2)
+library(corrplot)
+library(ggthemes)
+tidymodels_prefer()
+library(yardstick)
+```
+Homework 2
+
+1. 
+```{r}
+abalone <- read.csv("Desktop/abalone.csv")
+abalone$age <- abalone$rings + 1.5
+hist(abalone$age)
+shapiro.test(abalone$age)
+```
+As can be seen from the histogram, the distribution of age is right skewed, and the Shapiro-Wilk test for normality has a p value of < 2.2e-16, meaning the null (the data are normally distributed) can be rejected.
+
+2. 
+```{r}
+set.seed(3435)
+abalone_split <- initial_split(abalone, prop=0.80, strata=age)
+abalone_train <- training(abalone_split)
+abalone_test <- testing(abalone_split)
+```
+
+3. 
+```{r}
+abalone_recipe <- recipe(age ~ type + longest_shell + diameter + height + whole_weight + shucked_weight + viscera_weight + shell_weight, data = abalone_train) %>%
+  step_dummy(all_nominal_predictors()) %>%
+  step_interact(terms = ~ type:shucked_weight + longest_shell:diameter + shucked_weight:shell_weight) %>%
+  step_normalize(all_numeric())
+```
+Rings should not be used to predict age as it is simply the amount of rings + 1.5 and thus directly predicts age alone without input from other predictors.
+
+4. 
+```{r}
+lm_model <- linear_reg()%>%
+  set_engine("lm")
+```
+
+5. 
+```{r}
+lm_wflow <- workflow() %>%
+  add_model(lm_model) %>%
+  add_recipe(abalone_recipe)
+lm_fit <- fit(lm_wflow, abalone_train)
+```
+
+6. 
+```{r}
+lm_fit
+5.36988 - 0.02088*0.5 + 10.74518*0.1 + 9.23360*0.3 + 7.65812*4 - 18.27074 - 9.39532*2 + 10.63978
+```
+The predicted age is 13.41492.
+
+7. 
+```{r}
+summary(lm_fit)
+
+```
+
